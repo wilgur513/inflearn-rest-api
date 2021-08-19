@@ -1,6 +1,7 @@
 package com.wilgur513.inflearnrestapi.events;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wilgur513.inflearnrestapi.common.TestDescription;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +37,7 @@ public class EventControllerTest {
     ObjectMapper objectMapper;
 
     @Test
+    @TestDescription("정상적인 이벤트 생성 테스트")
     public void createEvent() throws Exception {
         EventDto event = EventDto.builder()
                 .name("Spring")
@@ -66,6 +68,7 @@ public class EventControllerTest {
     }
 
     @Test
+    @TestDescription("처리하지 못하는 입력 값에 따른 Bad Request 반환")
     public void createEvent_Bad_Request() throws Exception {
         Event event = Event.builder()
                 .id(100)
@@ -94,6 +97,7 @@ public class EventControllerTest {
     }
 
     @Test
+    @TestDescription("빈 입력 값에 대한 Bad Request 반환")
     public void createEvent_Bad_Request_Empty_Input() throws Exception {
         EventDto eventDto = EventDto.builder().build();
 
@@ -105,6 +109,7 @@ public class EventControllerTest {
     }
 
     @Test
+    @TestDescription("잘못된 입력 값에 대한 Bad Request 반환")
     public void createEvent_Bad_Request_Wrong_Input() throws Exception {
         EventDto eventDto = EventDto.builder()
                 .name("Spring")
