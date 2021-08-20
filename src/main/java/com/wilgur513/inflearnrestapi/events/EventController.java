@@ -19,8 +19,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 @RequestMapping(value = "/api/events", produces = MediaTypes.HAL_JSON_VALUE)
 @RequiredArgsConstructor
 public class EventController {
-    private final EventRepository eventRepository;
-    private final ModelMapper modelMapper;
+    private final EventService eventService;
     private final EventValidator eventValidator;
 
     @PostMapping
@@ -32,10 +31,8 @@ public class EventController {
         if(errors.hasErrors()) {
             return ResponseEntity.badRequest().body(errors);
         }
-        Event event = modelMapper.map(eventDto, Event.class);
-        event.update();
-        Event newEvent = eventRepository.save(event);
+        Event newEvent = eventService.createEvent(eventDto);
         URI createdUri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
-        return ResponseEntity.created(createdUri).body(event);
+        return ResponseEntity.created(createdUri).body(newEvent);
     }
 }
