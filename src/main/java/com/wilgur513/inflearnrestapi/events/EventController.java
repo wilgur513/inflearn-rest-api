@@ -26,6 +26,7 @@ public class EventController {
     private final EventRepository eventRepository;
     private final EventService eventService;
     private final EventValidator eventValidator;
+    private final ModelMapper modelMapper;
 
     @PostMapping
     public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
@@ -69,6 +70,32 @@ public class EventController {
         resource.add(Link.of("docs/index.html#resource-query-event").withRel("profile"));
         return ResponseEntity.ok(resource);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity updateEvent(@PathVariable int id, @RequestBody @Valid EventDto eventDto, Errors errors) {
+        if(errors.hasErrors()) {
+            return badRequest(errors);
+        }
+        eventValidator.validate(eventDto, errors);
+        if(errors.hasErrors()) {
+            return badRequest(errors);
+        }
+
+        Optional<Event> optionalEvent = eventRepository.findById(id);
+
+        if(optionalEvent.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Event event = optionalEvent.get();
+        modelMapper.map(eventDto, event);
+        eventRepository.save(event);
+
+        EventResource resource = EventResource.of(event);
+        resource.add(Link.of("docs/index.html#resource-update-event").withRel("profile"));
+        return ResponseEntity.ok(resource);
+    }
+
 
     private ResponseEntity badRequest(Errors errors) {
         return ResponseEntity.badRequest().body(new ErrorsResource(errors));

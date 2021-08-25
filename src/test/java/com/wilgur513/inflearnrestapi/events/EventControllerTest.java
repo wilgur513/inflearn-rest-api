@@ -1,5 +1,6 @@
 package com.wilgur513.inflearnrestapi.events;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wilgur513.inflearnrestapi.common.RestDocsConfiguration;
 import com.wilgur513.inflearnrestapi.common.TestDescription;
@@ -7,6 +8,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,8 +39,7 @@ import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.li
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -57,6 +58,9 @@ public class EventControllerTest {
 
     @Autowired
     EventRepository eventRepository;
+
+    @Autowired
+    ModelMapper modelMapper;
 
     @Test
     @TestDescription("정상적인 이벤트 생성 테스트")
@@ -314,6 +318,143 @@ public class EventControllerTest {
         mockMvc.perform(get("/api/events/100"))
                 .andExpect(status().isNotFound());
 
+    }
+
+    @Test
+    @TestDescription("기존의 이벤트 수정하기")
+    public void updateEvent() throws Exception {
+        EventDto eventDto = EventDto.builder()
+                .name("Spring")
+                .description("REST API")
+                .beginEnrollmentDateTime(LocalDateTime.of(2018, 11, 23, 14, 21))
+                .closeEnrollmentDateTime(LocalDateTime.of(2018, 11, 24, 14, 21))
+                .beginEventDateTime(LocalDateTime.of(2018, 11, 25, 14, 21))
+                .endEventDateTime(LocalDateTime.of(2018, 11, 26, 14, 21))
+                .basePrice(100)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("강남역 D2")
+                .build();
+        Event event = modelMapper.map(eventDto, Event.class);
+        event.update();
+        eventRepository.save(event);
+        eventDto.setName("Updated");
+
+        mockMvc.perform(put("/api/events/{id}", event.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(eventDto))
+                    )
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("name").value("Updated"))
+                    .andDo(document("update-event",
+                            links(
+                                    linkWithRel("self").description("link to self"),
+                                    linkWithRel("profile").description("link to profile")
+                            ),
+                            requestHeaders(
+                                    headerWithName(HttpHeaders.CONTENT_TYPE).description("content type")
+                            ),
+                            requestFields(
+                                    fieldWithPath("name").description("name"),
+                                    fieldWithPath("description").description("description"),
+                                    fieldWithPath("beginEnrollmentDateTime").description("beginEnrollmentDateTime"),
+                                    fieldWithPath("closeEnrollmentDateTime").description("closeEnrollmentDateTime"),
+                                    fieldWithPath("beginEventDateTime").description("beginEventDateTime"),
+                                    fieldWithPath("endEventDateTime").description("endEventDateTime"),
+                                    fieldWithPath("location").description("location"),
+                                    fieldWithPath("basePrice").description("basePrice"),
+                                    fieldWithPath("maxPrice").description("maxPrice"),
+                                    fieldWithPath("limitOfEnrollment").description("limitOfEnrollment")
+                            ),
+                            responseFields(
+                                    fieldWithPath("id").description("id"),
+                                    fieldWithPath("name").description("name"),
+                                    fieldWithPath("description").description("description"),
+                                    fieldWithPath("beginEnrollmentDateTime").description("beginEnrollmentDateTime"),
+                                    fieldWithPath("closeEnrollmentDateTime").description("closeEnrollmentDateTime"),
+                                    fieldWithPath("beginEventDateTime").description("beginEventDateTime"),
+                                    fieldWithPath("endEventDateTime").description("endEventDateTime"),
+                                    fieldWithPath("location").description("location"),
+                                    fieldWithPath("basePrice").description("basePrice"),
+                                    fieldWithPath("maxPrice").description("maxPrice"),
+                                    fieldWithPath("limitOfEnrollment").description("limitOfEnrollment"),
+                                    fieldWithPath("offline").description("offline"),
+                                    fieldWithPath("free").description("free"),
+                                    fieldWithPath("eventStatus").description("eventStatus"),
+                                    fieldWithPath("_links.self.href").description("link to self"),
+                                    fieldWithPath("_links.profile.href").description("link to profile")
+                            )
+                    ))
+        ;
+    }
+
+    @Test
+    @TestDescription("비어있는 값으로 이벤트를 변경 시 Bad Request")
+    public void updateEvent_Bad_Request_Empty() throws Exception {
+        Event event = generateEvent(100);
+        EventDto eventDto = new EventDto();
+        mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(eventDto))
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors[0].objectName").exists())
+                .andExpect(jsonPath("errors[0].defaultMessage").exists())
+                .andExpect(jsonPath("errors[0].code").exists())
+                .andExpect(jsonPath("_links.index").exists());
+    }
+
+    @Test
+    @TestDescription("잘못된 값으로 이벤트를 변경 시 Bad Request")
+    public void updateEvent_Bad_Request_Wrong() throws Exception {
+        EventDto eventDto = EventDto.builder()
+                .name("Spring")
+                .description("REST API")
+                .beginEnrollmentDateTime(LocalDateTime.of(2018, 11, 26, 14, 21))
+                .closeEnrollmentDateTime(LocalDateTime.of(2018, 11, 25, 14, 21))
+                .beginEventDateTime(LocalDateTime.of(2018, 11, 24, 14, 21))
+                .endEventDateTime(LocalDateTime.of(2018, 11, 23, 14, 21))
+                .basePrice(10000)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("강남역 D2")
+                .build();
+        Event event = generateEvent(100);
+        eventRepository.save(event);
+        mockMvc.perform(put("/api/events/{id}", event.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(eventDto))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors[0].objectName").exists())
+                .andExpect(jsonPath("errors[0].defaultMessage").exists())
+                .andExpect(jsonPath("errors[0].code").exists())
+                .andExpect(jsonPath("_links.index").exists());
+    }
+
+    @Test
+    @TestDescription("없는 이벤트 변경 시 Not Found")
+    public void updateEvent_Not_Found() throws Exception{
+        EventDto eventDto = EventDto.builder()
+                .name("Spring")
+                .description("REST API")
+                .beginEnrollmentDateTime(LocalDateTime.of(2018, 11, 23, 14, 21))
+                .closeEnrollmentDateTime(LocalDateTime.of(2018, 11, 24, 14, 21))
+                .beginEventDateTime(LocalDateTime.of(2018, 11, 25, 14, 21))
+                .endEventDateTime(LocalDateTime.of(2018, 11, 26, 14, 21))
+                .basePrice(100)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("강남역 D2")
+                .build();
+
+        mockMvc.perform(put("/api/events/{id}", 100)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(eventDto))
+        )
+                .andExpect(status().isNotFound())
+        ;
     }
 
     private Event generateEvent(int index) {

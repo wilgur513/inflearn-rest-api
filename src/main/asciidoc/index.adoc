@@ -76,3 +76,8 @@ operation::query-events[snippets='request-parameters,response-body,response-fiel
 == 이벤트 1건 조회
 
 operation::query-event[snippets='path-parameters,response-body,response-fields,curl-request,http-request,http-response']
+
+[[resource-update-event]]
+== 이벤트 수정
+
+operation::update-event[snippets='request-headers,request-fields,request-body,response-body,response-fields,curl-request,http-request,http-response,links']
