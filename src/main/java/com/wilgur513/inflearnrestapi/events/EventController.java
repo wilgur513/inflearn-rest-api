@@ -7,10 +7,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.MediaTypes;
-import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.*;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
@@ -18,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -55,8 +53,21 @@ public class EventController {
     public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
         Page<Event> page = eventRepository.findAll(pageable);
         PagedModel<EventResource> body = assembler.toModel(page, entity -> EventResource.of(entity));
-        body.add(Link.of("/docs/index.html#resource-query-event").withRel("profile"));
+        body.add(Link.of("/docs/index.html#resource-query-events").withRel("profile"));
         return ResponseEntity.ok(body);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity queryEvent(@PathVariable int id) {
+        Optional<Event> event = eventRepository.findById(id);
+
+        if(event.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        EventResource resource = EventResource.of(event.get());
+        resource.add(Link.of("docs/index.html#resource-query-event").withRel("profile"));
+        return ResponseEntity.ok(resource);
     }
 
     private ResponseEntity badRequest(Errors errors) {

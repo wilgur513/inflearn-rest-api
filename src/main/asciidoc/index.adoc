@@ -67,7 +67,12 @@ use of HTTP status codes.
 
 operation::create-event[snippets='request-headers,request-fields,request-body,response-headers,response-fields,response-body,curl-request,http-response,links']
 
-[[resources-query-event]]
+[[resources-query-events]]
 == 이벤트 조회
 
 operation::query-events[snippets='request-parameters,response-body,response-fields,curl-request,http-request,http-response']
+
+[[resource-query-event]]
+== 이벤트 1건 조회
+
+operation::query-event[snippets='path-parameters,response-body,response-fields,curl-request,http-request,http-response']

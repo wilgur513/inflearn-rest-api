@@ -17,24 +17,26 @@ import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -58,6 +60,7 @@ public class EventControllerTest {
 
     @Test
     @TestDescription("정상적인 이벤트 생성 테스트")
+    @Transactional
     public void createEvent() throws Exception {
         EventDto event = EventDto.builder()
                 .name("Spring")
@@ -207,6 +210,7 @@ public class EventControllerTest {
 
     @Test
     @TestDescription("30개 이벤트를 10개씩 두번째 페이지 조회하기")
+    @Transactional
     public void queryEvents() throws Exception{
         IntStream.range(0, 30).forEach(this::generateEvent);
 
@@ -264,11 +268,60 @@ public class EventControllerTest {
         ;
     }
 
-    private void generateEvent(int index) {
+    @Test
+    @TestDescription("기존의 이벤트 하나 조회하기")
+    @Transactional
+    public void queryEvent() throws Exception {
+        Event event = generateEvent(0);
+
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/events/{id}", event.getId()))
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andDo(document("query-event",
+                        links(
+                                linkWithRel("self").description("link to self"),
+                                linkWithRel("profile").description("link to profile")
+                        ),
+                        pathParameters(
+                                parameterWithName("id").description("event id")
+                        ),
+                        responseFields(
+                                fieldWithPath("id").description("id"),
+                                fieldWithPath("name").description("name"),
+                                fieldWithPath("description").description("description"),
+                                fieldWithPath("beginEnrollmentDateTime").description("beginEnrollmentDateTime"),
+                                fieldWithPath("closeEnrollmentDateTime").description("closeEnrollmentDateTime"),
+                                fieldWithPath("beginEventDateTime").description("beginEventDateTime"),
+                                fieldWithPath("endEventDateTime").description("endEventDateTime"),
+                                fieldWithPath("location").description("location"),
+                                fieldWithPath("basePrice").description("basePrice"),
+                                fieldWithPath("maxPrice").description("maxPrice"),
+                                fieldWithPath("limitOfEnrollment").description("limitOfEnrollment"),
+                                fieldWithPath("offline").description("offline"),
+                                fieldWithPath("free").description("free"),
+                                fieldWithPath("eventStatus").description("eventStatus"),
+                                fieldWithPath("_links.self.href").description("link to self"),
+                                fieldWithPath("_links.profile.href").description("link to profile")
+                        )
+                    )
+                )
+        ;
+    }
+
+    @Test
+    @TestDescription("기존에 없는 이벤트 조회로 인한 Not Found")
+    public void queryEvent_Not_Found() throws Exception {
+        mockMvc.perform(get("/api/events/100"))
+                .andExpect(status().isNotFound());
+
+    }
+
+    private Event generateEvent(int index) {
         Event event = Event.builder()
                 .name("event " + index)
                 .description("description " + index)
                 .build();
         eventRepository.save(event);
+        return event;
     }
 }
