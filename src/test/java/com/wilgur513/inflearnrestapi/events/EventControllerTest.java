@@ -17,11 +17,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,7 +33,10 @@ import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.li
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -47,6 +52,9 @@ public class EventControllerTest {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    EventRepository eventRepository;
 
     @Test
     @TestDescription("정상적인 이벤트 생성 테스트")
@@ -195,5 +203,72 @@ public class EventControllerTest {
                 .andExpect(jsonPath("errors[0].code").exists())
                 .andExpect(jsonPath("_links.index").exists())
         ;
+    }
+
+    @Test
+    @TestDescription("30개 이벤트를 10개씩 두번째 페이지 조회하기")
+    public void queryEvents() throws Exception{
+        IntStream.range(0, 30).forEach(this::generateEvent);
+
+        mockMvc.perform(get("/api/events")
+                    .param("page", "1")
+                    .param("size", "10")
+                    .param("sort", "name,DESC")
+                )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("query-events",
+                        links(
+                                linkWithRel("first").description("link to first"),
+                                linkWithRel("self").description("link to self"),
+                                linkWithRel("prev").description("link to previous page"),
+                                linkWithRel("next").description("link to next page"),
+                                linkWithRel("last").description("link to last page"),
+                                linkWithRel("profile").description("link to profile")
+                        ),
+                        requestParameters(
+                                parameterWithName("page").description("page"),
+                                parameterWithName("size").description("size"),
+                                parameterWithName("sort").description("sort")
+                        ),
+                        responseFields(
+                                fieldWithPath("_embedded.eventResourceList").type(JsonFieldType.ARRAY).description("result array"),
+                                fieldWithPath("_embedded.eventResourceList[].id").description("id"),
+                                fieldWithPath("_embedded.eventResourceList[].name").description("name"),
+                                fieldWithPath("_embedded.eventResourceList[].description").description("description"),
+                                fieldWithPath("_embedded.eventResourceList[].beginEnrollmentDateTime").description("beginEnrollmentDateTime"),
+                                fieldWithPath("_embedded.eventResourceList[].closeEnrollmentDateTime").description("closeEnrollmentDateTime"),
+                                fieldWithPath("_embedded.eventResourceList[].beginEventDateTime").description("beginEventDateTime"),
+                                fieldWithPath("_embedded.eventResourceList[].endEventDateTime").description("endEventDateTime"),
+                                fieldWithPath("_embedded.eventResourceList[].location").description("location"),
+                                fieldWithPath("_embedded.eventResourceList[].basePrice").description("basePrice"),
+                                fieldWithPath("_embedded.eventResourceList[].maxPrice").description("maxPrice"),
+                                fieldWithPath("_embedded.eventResourceList[].limitOfEnrollment").description("limitOfEnrollment"),
+                                fieldWithPath("_embedded.eventResourceList[].offline").description("offline"),
+                                fieldWithPath("_embedded.eventResourceList[].free").description("free"),
+                                fieldWithPath("_embedded.eventResourceList[].eventStatus").description("eventStatus"),
+                                fieldWithPath("_embedded.eventResourceList[]._links.self.href").description("link to self"),
+                                fieldWithPath("_links.first.href").description("links"),
+                                fieldWithPath("_links.prev.href").description("links"),
+                                fieldWithPath("_links.self.href").description("links"),
+                                fieldWithPath("_links.next.href").description("links"),
+                                fieldWithPath("_links.last.href").description("links"),
+                                fieldWithPath("_links.profile.href").description("links"),
+                                fieldWithPath("page.size").description("page"),
+                                fieldWithPath("page.totalElements").description("page"),
+                                fieldWithPath("page.totalPages").description("page"),
+                                fieldWithPath("page.number").description("page")
+                        )
+                ))
+
+        ;
+    }
+
+    private void generateEvent(int index) {
+        Event event = Event.builder()
+                .name("event " + index)
+                .description("description " + index)
+                .build();
+        eventRepository.save(event);
     }
 }
