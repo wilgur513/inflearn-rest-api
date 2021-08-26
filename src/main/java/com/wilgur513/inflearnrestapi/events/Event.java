@@ -1,5 +1,6 @@
 package com.wilgur513.inflearnrestapi.events;
 
+import com.wilgur513.inflearnrestapi.accounts.Account;
 import lombok.*;
 import org.springframework.hateoas.RepresentationModel;
 
@@ -26,7 +27,8 @@ public class Event extends RepresentationModel<Event> {
     private boolean free;
     @Enumerated(EnumType.STRING)
     private EventStatus eventStatus = EventStatus.DRAFT;
-
+    @ManyToOne
+    private Account manager;
     public void update() {
         if(basePrice == 0 && maxPrice == 0) {
             free = true;
