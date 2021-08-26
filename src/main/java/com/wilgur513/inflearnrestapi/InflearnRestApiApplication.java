@@ -12,9 +12,4 @@ public class InflearnRestApiApplication {
         SpringApplication.run(InflearnRestApiApplication.class, args);
     }
 
-    @Bean
-    public ModelMapper modelMapper() {
-        return new ModelMapper();
-    }
-
 }
