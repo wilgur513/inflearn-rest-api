@@ -1,6 +1,7 @@
 package com.wilgur513.inflearnrestapi.configs;
 
 import com.wilgur513.inflearnrestapi.accounts.AccountService;
+import com.wilgur513.inflearnrestapi.common.AppProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,7 @@ public class AutoServerConfig extends AuthorizationServerConfigurerAdapter {
     private final AuthenticationManager authenticationManager;
     private final AccountService accountService;
     private final TokenStore tokenStore;
+    private final AppProperties properties;
 
     @Override
     public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
@@ -29,10 +31,10 @@ public class AutoServerConfig extends AuthorizationServerConfigurerAdapter {
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
         clients.inMemory()
-                .withClient("myApp")
+                .withClient(properties.getClientId())
                 .authorizedGrantTypes("password", "refresh_token")
                 .scopes("read", "write")
-                .secret(passwordEncoder.encode("pass"))
+                .secret(passwordEncoder.encode(properties.getClientSecret()))
                 .accessTokenValiditySeconds(10 * 60)
                 .refreshTokenValiditySeconds(60 * 60)
         ;

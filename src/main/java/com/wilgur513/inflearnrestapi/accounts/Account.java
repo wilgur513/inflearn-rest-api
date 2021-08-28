@@ -9,7 +9,7 @@ import java.util.Set;
 @Getter @Setter @EqualsAndHashCode(of={"id"})
 @Builder @NoArgsConstructor @AllArgsConstructor
 public class Account {
-    @Id @GeneratedValue
+    @Id @GeneratedValue @Column(unique = true)
     private Integer id;
     private String email;
     private String password;
