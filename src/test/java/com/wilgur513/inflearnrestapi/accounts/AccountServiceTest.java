@@ -22,9 +22,12 @@ import static org.assertj.core.api.Fail.fail;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles("test")
+@Transactional
 public class AccountServiceTest {
     @Autowired
     AccountService accountService;
+    @Autowired
+    AccountRepository accountRepository;
     @Autowired
     PasswordEncoder passwordEncoder;
 
