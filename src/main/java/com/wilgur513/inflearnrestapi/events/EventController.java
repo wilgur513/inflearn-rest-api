@@ -1,5 +1,8 @@
 package com.wilgur513.inflearnrestapi.events;
 
+import com.wilgur513.inflearnrestapi.accounts.Account;
+import com.wilgur513.inflearnrestapi.accounts.AccountAdapter;
+import com.wilgur513.inflearnrestapi.accounts.CurrentUser;
 import com.wilgur513.inflearnrestapi.common.ErrorsResource;
 import com.wilgur513.inflearnrestapi.index.IndexController;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,10 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.*;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,10 +58,15 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+    public ResponseEntity queryEvents(Pageable pageable,
+                                      PagedResourcesAssembler<Event> assembler,
+                                      @CurrentUser Account currentUser) {
         Page<Event> page = eventRepository.findAll(pageable);
         PagedModel<EventResource> body = assembler.toModel(page, entity -> EventResource.of(entity));
         body.add(Link.of("/docs/index.html#resource-query-events").withRel("profile"));
+        if(currentUser != null) {
+            body.add(linkTo(EventController.class).withRel("create-event"));
+        }
         return ResponseEntity.ok(body);
     }
 
